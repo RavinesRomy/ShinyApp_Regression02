@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Encode+Sans+Semi+Condensed&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300&display=swap');
+
+/* Optional Google font URL
+ google_fonts = "Encode Sans Semi Condensed:400,400i,600,600i|Oswald:300,300i ,600,600i|Roboto+Condensed:400"
+*/
+
+.navbar-default {
+    background-color: #C19434;
+    border: none;
+}
+h1 {
+  color: #41541e;
+  font-family: 'Oswald', sans-serif;
+}
+
+h2 {
+  color: #41541e;
+  font-family: 'Oswald', sans-serif;
+}
+
+h3 {
+  color: #41541e;
+  font-family: 'Encode Sans Semi Condensed', sans-serif;
+}
+
+blockquote {
+  margin: 0 0 0 0;
+  padding: 0.5px 21px;  /* I changed from default of 10.5px 21px*/
+}
+
+.blockquote-note {
+  color: #777777;
+  background-color: #f6f3f3;
+  width: 90%;
+  margin: 0 auto;
+}
+
+body
+{
+    font-family:'Encode Sans Semi Condensed', sans-serif;
+    font-size:16px;
+    font-weight:100px;
+}
+
+
+.alert-note {
+  color: #777777;
+  background-color: #f6f3f3;
+  width: 90%;
+  margin: 0 auto;
+}
+
+div.tip, div.obj{
+  border: 2px #ff7400;
+  border-style: solid;
+  padding: 1em;
+  margin: 1em 0;
+  
+  /*uncomment for icon */
+  
+  /* padding-left: 100px; 
+  background-size: 70px; 
+  background-repeat: no-repeat;
+  background-position: 15px center; */
+  min-height: 120px;
+  color: #ff7400;
+  background-color: #fff8f2;
+}
+
+div.obj {
+  font-size: 16px;
+  line-height: 1.5em;
+  /*background-image: url("../images/arrow.png");*/
+}
+
+div.obj>p:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  font-family: 'Open Sans';
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+div.rmdnote {
+  padding: 1em 1em 1em 4.5em;
+  margin-bottom: 10px;
+  background: #f5f5f5 5px center/3em no-repeat;
+}
+
+
+div.rmdnote {
+  background-image: url(../images/light-bulb.png);
+    font-size: 20px;
+    font-weight: bold;
+}
+
+div.note {
+    padding: 1em;
+    margin: 1em 0;
+    padding-left: 100px;
+    background-size: 70px;
+    background-repeat: no-repeat;
+    background-position: 15px center;
+    min-height: 120px;
+    color: #41541e;
+    background-color: #F1F1EF;
+    border: solid 3px #41541e;
+}
+div.note {
+  background-image: url("/images/Book_41541e.png");
+  font-size: 16px;
+}

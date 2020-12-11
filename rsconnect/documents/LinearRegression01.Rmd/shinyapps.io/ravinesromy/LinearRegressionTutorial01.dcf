@@ -1,0 +1,13 @@
+name: LinearRegressionTutorial01
+title: LinearRegressionTutorial01
+username:
+account: ravinesromy
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3296867
+bundleId: 3905020
+url: https://ravinesromy.shinyapps.io/LinearRegressionTutorial01/
+when: 1606316750.54447
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: monet.csv|monet_summary.csv|css/mystyle.css

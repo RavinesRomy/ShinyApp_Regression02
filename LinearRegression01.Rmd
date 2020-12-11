@@ -1,0 +1,793 @@
+---
+title: "Simple Linear Regression"
+output: 
+  learnr::tutorial:
+    progressive: true
+    allow_skip: true
+    css: css/format.css
+runtime: shiny_prerendered
+description: "A Quiz on basic concepts"
+tutorial:
+  id: "econometrics2020.01-linear-regression"
+  version: 1.0
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+#tutorial_options(exercise.timelimit = 60, exercise.checker = checker)
+
+knitr::opts_chunk$set(echo = FALSE)
+
+library(htmlwidgets)
+library(dplyr)
+library(stringr)
+library(purrr)
+library(highcharter)
+library(data.table)
+library(kableExtra)
+library(caret)
+library(gridExtra)
+library(grid)
+library(ggplot2)
+library(jsonlite)
+#library(summarytools)
+library(ggpubr)
+library(rstatix)
+library(fontawesome)
+library(broom)
+library(sjPlot)
+library(htmlTable)
+library(DT)
+
+mycolor_romy_01 =c("#41541e","#C19434","#E7B800","#F1F1EF")
+```
+
+## Welcome
+
+### 
+
+<div class="rmdnote">
+Linear regression is the most widely used statistical technique; it is a way to model a relationship between two sets of variables. The result is a linear regression equation that can be used to make predictions about data.
+</div>
+
+
+ - Regression analysis is used to find equations that fit data. 
+ - Once we have the regression equation, we can use the model to make predictions. 
+ - One type of regression analysis is linear analysis.
+ - When a scatter plot of the data appears to form a straight line, you can use **simple linear regression** to find a predictive function.
+ - From elementary algebra, the equation for a line is $$y = a + bx,$$ where $a$ is the intercept and $b$ is the slope of the line.
+
+
+<font size="2">- Adapted from [here](https://www.statisticshowto.com/probability-and-statistics/regression-analysis/find-a-linear-regression-equation/#:~:text=You%20might%20also%20recognize%20the,a%20is%20the%20y%2Dintercept.) and [here](http://reliawiki.org/index.php/Simple_Linear_Regression_Analysis)</font>
+
+### Summary
+
+<div class="note">
+
+The simple linear regression model is:
+
+\begin{equation}
+ y_i = \mu_i + \epsilon_i = \beta_0 + \beta_1 x_i + \epsilon_i
+\end{equation}
+
+Here,
+
+ 1. $\mu_i = \beta_0 + \beta_1 x_i$ is the **mean value** of the dependent variable when the value of the independent variable $X$ is $x_i$
+ 1. $\epsilon_i$ is an error term that describes the effects on $y_i$ of all factors other than the value $x_i$ of the independent variable $X$
+ 1. $\beta_0$ (the $y$-**intercept**) is the mean value of the dependent variable when the value of the independent variable $X$ is zero.
+ 1. $\beta_1$ (the **slope**) is the change in the mean value of the dependent variable.
+   1. If $\beta_1$ is **positive**, the mean value of the dependent variable increases as the value of the independent variable increases.
+   1. If $\beta_1$ is **negative**, the mean value of the dependent variable decreases as the value of the independent variable increases.
+   
+   
+   <br>
+</div>
+
+
+
+
+### The tutorial focuses on three basic topics:
+
+
+<div class="tip">
+  <p><strong>Module learning objectives</strong></p>
+  <ul>
+    <li><i class="far fa-handshake"></i> Basic Concepts</li>
+     <li><i class="far fa-handshake"></i> Interpretation</li>
+    <li><i class="far fa-handshake"></i> Parameters</li>
+    <li><i class="far fa-handshake"></i> Model Adequacy</li>
+</ul>
+</div>
+
+
+
+***
+
+## Example
+
+We can use Regression Analysis to predict the dependent variable $Y$ on the basis of the independent variable $X$. A linear regression is where the relationships between your variables can be described with a straight line.
+
+Let's see an example:
+
+```{r  glucose-data, out.width = "80%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+data_raw = data.frame( Subject = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                    Age = c(43, 21, 25, 42, 57, 59, 35, 40, 48, 32, 27,59),
+                    Glucose = c(99, 65, 79, 75, 87, 81, 80, 79, 90, 70, 68, 92 ))
+
+knitr::kable(data_raw, col.names = c("Subject",
+                           "Age ($x$)",
+                           "Glucose Level ($y$)")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F) %>% 
+  add_header_above(c("Dataset"=3))
+
+datos <- as.data.frame(data_raw)
+
+```
+
+
+### **Step 1**: Make a chart of your data
+
+<br>
+
+```{r  glucose-scatter, out.width = "60%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+
+hc <- datos%>% hchart("scatter", hcaes(x = Age, y = Glucose), zIndex = 4) %>%
+      hc_colors(mycolor_romy_01) %>%
+      hc_chart(backgroundColor= '#E9E7DA', plotBackgroundColor= '#ffffff')%>%
+      hc_chart( zoomType = "xy")%>%
+      hc_title(text = "Age vs Glucose Level", style = list(fontSize=14)) %>%
+      hc_yAxis(title=list(text="Glucose Level ",style=list(color="black")),
+               labels = list(style=list(color="black")),
+               plotLines = list(list(
+                           value = mean(datos$Glucose),
+                           color = '#41541e',
+                           dashStyle = "shortdash",
+                           width = 1,
+                           zIndex = 2,
+               label = list(text = paste("y =",round(mean(datos$Glucose),2)),
+                                        style = list( color = '#41541e', 
+                                        fontSize = "10px",
+                                        fontWeight = 'normal'))))
+                     ) %>%
+      hc_xAxis(labels = list(rotation=0, style=list(color="black")), 
+               title=list(text="Age",style=list(color="black")),
+               plotLines = list(list(
+                           value = mean(datos$Age),
+                           color = '#41541e',
+                           dashStyle = "shortdash",
+                           width = 1,
+                           zIndex = 2,
+                           label = list(text = paste("x =",round(mean(datos$Age),2)),
+                                        style = list( color = '#41541e',
+                                        fontSize = "10px",
+                                        fontWeight = 'normal' )
+             ))
+                     ) )%>%
+       hc_tooltip(backgroundColor = "#f5f5f5",
+                       borderWidth = 1,
+                       headerFormat ="{point.name}",
+                        pointFormat = "<span style=\"color:{series.color}\">Glucose</span>:<b> {point.y:,.0f}</b> Mg/dL <br><span style=\"color:{series.color}\">Age</span>:<b> {point.x}</b> years <br>")%>%
+        hc_legend(enabled = TRUE,  layout = "horizontal", verticalAlign = "bottom", 
+                        floating =FALSE, align = "center",
+                        style = list(fontsize = "10")) %>%
+  hc_add_theme(hc_theme_elementary())
+
+hc
+```
+
+
+<br>
+
+
+### **Step 2**: Find a Least Squares Regression Line
+
+<br>
+
+Use the formulas for calculating  the Fitted Line Using Least Square Estimates
+
+<br>
+
+```{r}
+withMathJax(
+  "\\(\\hat{\\beta}_1 = \\dfrac{\\big(\\sum^n_{i = 1} x_i y_i \\big) - n
+                   \\bar{x} \\bar{y}}{\\sum^n_{i = 1} (x_i - \\bar{x})^2}\\) ")
+```
+
+<br>
+
+```{r}
+withMathJax("\\(\\hat{\\beta}_0 = \\bar{y} - \\hat{\\beta}_1 \\bar{x} \\) ")
+```
+
+<br>
+<div class="tip">
+Take into account that, for a set $X$ of $n$ items:
+
+$$ \text{Sum of squares = } \sum_{i=1}^n (X_i-\bar{x})^2 $$
+
+
+where
+
+ - $x_i$ is the $i-th$ item in the set
+ - $\bar{x}$ is the mean of all items in the set
+ - $x_i - \bar{x}$ is the deviation of each item from the mean
+
+</div>
+
+<br>
+
+```{r  glucose-parameters, out.width = "60%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+
+datos$XY= datos$Age * datos$Glucose
+datos$X2= (datos$Age)^2
+datos$Y2= (datos$Glucose)^2
+datos$Xdev= round((datos$Age - mean(datos$Age))^2,2)
+
+knitr::kable(datos, col.names = c("Subject",
+                           "Age ($x$)",
+                           "Glucose ($y$)",
+                           "$xy$",
+                           "$x^2$",
+                           "$y^2$",
+                           "$(x-\\bar{x})^2$")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F) %>% 
+  add_header_above(c("Compute parameters by hand"=7))
+
+sumas = data.frame( SumX = sum(datos$Age),
+                    SumY = sum(datos$Glucose),
+                    SumXY = sum(datos$XY),
+                    SumX2 = sum(datos$X2),
+                    SumY2 = sum(datos$Y2),
+                    SumXdev = sum(datos$Xdev),
+                    n = nrow(datos))
+
+knitr::kable(sumas, col.names = c("$\\sum x$",
+                           "$\\sum y$",
+                           "$\\sum xy$",
+                           "$\\sum x^2$",
+                           "$\\sum y^2$",
+                           "$\\sum (x-\\bar{x})^2$",
+                           "n" ),
+             align = "ccccccc") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F)
+
+```
+
+
+<br>
+ - The **Slope** or Gradient $\beta_1$
+<br>
+
+```{r}
+model <- lm(Glucose ~ Age, data = datos)
+
+withMathJax(paste0(
+  "\\(\\hat{\\beta}_1 = \\dfrac{\\big(\\sum^n_{i = 1} x_i y_i \\big) - n
+                   \\bar{x} \\bar{y}}{\\sum^n_{i = 1} (x_i - \\bar{x})^2} = \\) ",
+  round(model$coef[[2]], 3)
+))
+```
+
+<br>
+ - The **Intercept** $\beta_0$
+<br>
+```{r}
+withMathJax(paste0(
+  "\\(\\hat{\\beta}_0 = \\bar{y} - \\hat{\\beta}_1 \\bar{x} = \\) ",
+  round(model$coef[[1]], 3)
+))
+```
+
+<br>
+ - The **fitted model** (the equation of the line)
+<br>
+
+```{r}
+withMathJax(paste0(
+  "\\( \\Rightarrow \\hat{y} = \\hat{\\beta}_0 + \\hat{\\beta}_1 x = \\) ",
+  round(model$coef[[1]], 3), " + ", round(model$coef[[2]], 3), "\\( x \\)"
+))
+```
+
+
+
+### **Step 3**: Fitted Values and Residuals
+
+Fitted values are the estimated values ($\hat{y}$) for the dependent variable obtained from the fitted regression line and a value for the independent variable ($x$).
+
+$$\hat{y}= \hat{\beta}_0 + \hat{\beta}_1 x$$
+<div class="tip">
+The difference between the observed value of the dependent variable ($y$) and the predicted value ($\hat{y}$) is called the **residual** ($e$). Each data point has one residual.
+
+$$\textrm{Residual = Observed value - Predicted value}$$
+$$e_i = y_i-\hat{y_i}$$
+</div>
+
+<br>
+
+```{r  glucose-fited, out.width = "60%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+
+datos$Yhat= round(model$coef[[1]]+model$coef[[2]]*datos$Age,2)
+datos$resid= datos$Glucose - datos$Yhat 
+
+knitr::kable(datos[c("Subject","Age","Glucose","Yhat","resid")], 
+             col.names = c("Subject",
+                           "Age ($x$)",
+                           "Glucose ($y$)",
+                           "$\\hat{y}$",
+                           "$y-\\hat{y}$")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F) %>% 
+  add_header_above(c("Fitted Values and Residual"=5))
+```
+
+<br>
+
+<br>
+
+
+```{r  glucose-regression, out.width = "60%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+
+
+#model <- lm(Glucose ~ Age, data = datos)
+fit <- augment(model) %>% arrange(Age)
+
+newx <- seq(20, 60, by=0.025)
+conf_interval <- predict(model, newdata=data.frame(Age=newx), interval="confidence", level = 0.95)
+ci95=as.data.frame(round(conf_interval,2))
+ci95$Age=newx
+
+hc <- datos%>% hchart("scatter", hcaes(x = Age, y = Glucose), zIndex = 3) %>%
+      hc_colors(mycolor_romy_01) %>%
+      hc_chart(backgroundColor= '#E9E7DA', plotBackgroundColor= '#ffffff')%>%
+            hc_add_series(ci95, 
+                          type = "line", 
+                          hcaes(x = Age, y = fit),
+                          name = "Fit", 
+                          id = "fit", 
+                          zIndex = 5,
+                          showInLegend = TRUE ) %>%
+            hc_add_series(ci95, type = "arearange",
+                          hcaes(x = Age, 
+                                low = lwr, 
+                                high = upr, 
+                                linkedTo = "fit"),
+                          name = "CI (95%)",
+                          zIndex = 4, 
+                          color="#E9E7DA",
+                          fillOpacity = 0.75,
+                          lineWidth = 1,
+                          showInLegend = TRUE) %>%
+      hc_chart( zoomType = "xy")%>%
+      hc_title(text = "Age vs Glucose Level", style = list(fontSize=14)) %>%
+      hc_yAxis(title=list(text="Glucose Level ",style=list(color="black")),
+               labels = list(style=list(color="black")),
+               plotLines = list(list(
+                           value = mean(datos$Glucose),
+                           color = '#41541e',
+                           dashStyle = "shortdash",
+                           width = 1,
+                           zIndex = 2,
+               label = list(text = paste("y =",round(mean(datos$Glucose),2)),
+                                        style = list( color = '#41541e', 
+                                        fontSize = "10px",
+                                        fontWeight = 'normal'))))
+                     ) %>%
+      hc_xAxis(labels = list(rotation=0, style=list(color="black")), 
+               title=list(text="Age",style=list(color="black")),
+               plotLines = list(list(
+                           value = mean(datos$Age),
+                           color = '#41541e',
+                           dashStyle = "shortdash",
+                           width = 1,
+                           zIndex = 2,
+                           label = list(text = paste("x =",round(mean(datos$Age),2)),
+                                        style = list( color = '#41541e',
+                                        fontSize = "10px",
+                                        fontWeight = 'normal' )
+             ))
+                     ) )%>%
+       hc_tooltip(backgroundColor = "#f5f5f5",
+                  borderWidth = 1,
+                  crosshairs =  TRUE,
+                  shared = TRUE,
+                  #valueSuffix =  "Mg/dL",
+                  headerFormat ="{point.name}")%>%
+        hc_legend(enabled = TRUE,  layout = "horizontal", verticalAlign = "bottom", 
+                        floating =FALSE, align = "center",
+                        style = list(fontsize = "10")) %>%
+  hc_add_theme(hc_theme_elementary())
+
+hc
+
+
+#pointFormat = "<span style=\"color:{series.color}\">Glucose</span>:<b> #{point.y:,.2f}</b> Mg/dL <br><span style=\"color:{series.color}\">Age</span>:<b> #{point.x:,.2f}</b> years <br>"
+
+```
+
+
+
+### **Step 5**: Hypothesis Testing
+
+
+$$ H_0: \beta_1 = 0 $$
+$$ H_1: \beta_1 \neq 0 $$
+
+The test statistic is:
+
+
+$$t_{stat} = \dfrac{\hat{\beta_1}}{se(\hat{\beta_1})}$$
+
+where $\beta^1$ is the least square estimate of $\beta_1$, and $se(\hat{\beta_1})$ is its standard error. The value of $se(\hat{\beta_1})$can be calculated as follows:
+
+
+$$ se(\hat{\beta}_1)= \sqrt{\frac{\frac{\displaystyle \sum_{i=1}^n e_i^2}{n-2}}{\displaystyle \sum_{i=1}^n (x_i-\bar{x})^2}} $$
+
+The test statistic, $T_0$, follows a $t$ distribution with $(n−2)$ degrees of freedom, where $n$ is the total number of observations. The null hypothesis, $H_0$, is not rejected if the calculated value of the test statistic $(t_{stat})$ is such that:
+
+$$-t_{\alpha/2,n-2}\lt T_0\lt t_{\alpha/2,n-2}$$
+
+where $t_{\alpha/2,n-2}$ and $-t_{\alpha/2,n-2}$ are the critical values for the two-sided hypothesis. 
+
+<div class="tip">
+The test indicates if the fitted regression model is of value in explaining variations in the observations or if you are trying to impose a regression model when no true relationship exists between $x$ and $y$. Failure to reject $H_0: \beta_1 = 0$ implies that no linear relationship exists between $x$ and $y$. 
+</div>
+
+<br>
+```{r  glucose-resid, out.width = "60%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+
+#datos$Yhat= round(model$coef[[1]]+model$coef[[2]]*datos$Age,2)
+datos$resid= round(datos$Glucose - datos$Yhat,4) 
+datos$resid2= round((datos$Glucose - datos$Yhat)^2 ,4)
+
+knitr::kable(datos[c("Subject","Age","Glucose","Yhat","resid","resid2")], 
+             col.names = c("Subject",
+                           "Age ($x$)",
+                           "Glucose ($y$)",
+                           "$\\hat{y}$",
+                           "$y-\\hat{y}$",
+                           "($y-\\hat{y})^2$")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F) %>% 
+  add_header_above(c("Inference"=6))
+
+
+sumas2 = data.frame(SumX = sum(datos$Age),
+                    SumX2 = sum(datos$X2),
+                    SumY = sum(datos$Glucose),
+                    SumResid = round(sum(datos$resid),4),
+                    SumResid2 = round(sum(datos$resid2),4),
+                    n = nrow(datos))
+
+knitr::kable(sumas2, col.names = c("$\\sum x$",
+                           "$\\sum x^2$",
+                           "$\\sum y$",
+                           "$\\sum (y-\\hat{y})$",
+                           "$\\sum (y-\\hat{y})^2$",
+                           "n" ),
+             align = "cccccc") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F)
+
+
+```
+<br>
+
+```{r  glucose-hypothesis, out.width = "60%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+
+tab_model(model,show.se = TRUE, show.stat = TRUE, show.ci = FALSE,
+          string.pred = "Parameters",
+          string.stat = "t-stat",
+          string.p = "p-value",
+          digits.p = 4
+          )
+#col.order = c("est", "se", "stat", "p")
+#p.style = "stars", string.ci = "CI (95%)",
+
+```      
+
+
+### **Step 6**: Confidence Intervals
+
+
+
+
+> **Confidence Interval on Regression Coefficients**
+
+<br>
+
+A $100(1-\alpha)$ percent confidence interval on $\beta_1$ is obtained as follows:
+
+$${{\hat{\beta }}_{1}}\pm {{t}_{\alpha /2,n-2}}\cdot se({{\hat{\beta }}_{1}})\,$$
+
+
+
+Similarly, a  $100(1-\alpha)$  percent confidence interval on $\beta_0$ is obtained as:
+
+
+$${{\hat{\beta }}_{0}}\pm {{t}_{\alpha /2,n-2}}\cdot se({{\hat{\beta }}_{0}})\,$$
+<br>
+
+```{r  glucose-beta-intervals, out.width = "60%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+
+tab_model(model,show.se = TRUE, show.stat = TRUE, collapse.ci = TRUE,
+          string.pred = "Parameters",
+          string.stat = "t-stat",
+          string.ci = "CI (95%)",
+          string.p = "p-value",
+          digits.p = 4
+          )
+#col.order = c("est", "se", "stat", "p")
+#p.style = "stars"
+
+```
+where ${t}_{\alpha /2,n-2} = \,$  `r round(qt(0.025,4),3)`  and  ${t}_{(1-\alpha) /2,n-2} = \,$   `r round(qt(0.975,4),3)`
+
+<br>
+
+> **Confidence Interval on Fitted Values**
+
+<br>
+
+A $100(1-\alpha)$  percent confidence interval on any fitted value, $\hat{y_i}$, is obtained as follows:
+
+$${{\hat{y}}_{i}}\pm {{t}_{\alpha /2,n-2}}\sqrt{{{{\hat{\sigma }}}^{2}}\left[ \frac{1}{n}+\frac{{{({{x}_{i}}-\bar{x})}^{2}}}{\underset{i=1}{\overset{n}{\mathop \sum }}\,{{({{x}_{i}}-\bar{x})}^{2}}} \right]}\,$$
+where:
+
+ - $\hat{\sigma}^{2}$ is the **mean square error** ($MSE$).
+ - The term that multiplies ${t}_{\alpha /2,n-2}$ is the **standard error of the fit** 
+
+<br>
+
+
+<div class="tip">
+The **residual sum of squares** (or error sum of squares) is defined as
+
+$$ SS_E = \sum_{i=1}^n (y_i - \hat{y_i})^2 = \sum_{i=1}^n e_i^2$$
+and the estimate of $\sigma^2$ is
+
+$$\sigma^2 = \dfrac{SS_E}{n-2} $$
+
+</div>
+
+<br>
+
+```{r  glucose-fitted-intervals, out.width = "60%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+
+reg.conf.intervals <- function(x, y) {
+  n <- length(y) # Find length of y to use as sample size
+  lm.model <- lm(y ~ x) # Fit linear model
+  
+  # Extract fitted coefficients from model object
+  b0 <- lm.model$coefficients[1]
+  b1 <- lm.model$coefficients[2]
+  
+  # Find SSE and MSE
+  sse <- sum((y - lm.model$fitted.values)^2)
+  mse <- sse / (n - 2)
+  
+  t.val <- qt(0.975, n - 2) # Calculate critical t-value
+  
+  # Fit linear model with extracted coefficients
+  x_new <- x
+  y.fit <- b1 * x_new + b0
+  
+  # Find the standard error of the regression line
+  se <- sqrt(sum((y - y.fit)^2) / (n - 2)) * sqrt(1 / n + (x - mean(x))^2 / sum((x - mean(x))^2))
+  
+  # Fit a new linear model that extends past the given data points (for plotting)
+  x_new2 <- x
+  y.fit2 <- b1 * x_new2 + b0
+  
+  # Warnings of mismatched lengths are suppressed
+  slope.upper <- suppressWarnings(y.fit2 + t.val * se)
+  slope.lower <- suppressWarnings(y.fit2 - t.val * se)
+  
+  # Collect the computed confidence bands into a data.frame and name the colums
+  bands <- data.frame(cbind(slope.lower, slope.upper))
+  colnames(bands) <- c('Lower CI', 'Upper CI')
+  
+  # Plot the fitted linear regression line and the computed confidence bands
+  # plot(x, y, cex = 1.75, pch = 21, bg = 'gray')
+  # lines(y.fit2, col = 'black', lwd = 2)
+  # lines(bands[1], col = 'blue', lty = 2, lwd = 2)
+  # lines(bands[2], col = 'blue', lty = 2, lwd = 2)
+  
+  return(bands)
+}
+
+conf.intervals <- reg.conf.intervals(datos$Age, datos$Glucose)
+
+datos$Lower= round(conf.intervals[,1] ,2)
+datos$Upper= round(conf.intervals[,2] ,2)
+
+knitr::kable(datos[c("Subject","Age","Glucose","Yhat","Lower","Upper")], 
+             col.names = c("Subject",
+                           "Age ($x$)",
+                           "Glucose ($y$)",
+                           "$\\hat{y}$",
+                           "Lower Limit",
+                           "Upper Limit")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F) %>%
+  add_header_above(c(" ", "Dataset" = 2, "Fitted Value ", "Confidence Interval (95%)" = 2)) %>%
+  add_header_above(c("Confidence Intervals"=6))
+
+#conf_interval_2 <- predict(model, newdata=data.frame(Age=datos$Age), interval="confidence", level = 0.95)
+
+```
+
+<br>
+
+
+### **Step 7**: Coefficient of Determination
+
+<br>
+
+The coefficient of determination is a measure of the amount of variability in the data accounted for by the regression model. The total variability of the data is measured by the total sum of squares, $SS_T$. The amount of this variability explained by the regression model is the regression sum of squares, $SS_R$. The coefficient of determination is:
+
+$$R^2 = \dfrac{SS_R}{SS_T}\,$$
+
+Where:
+
+$$S{{S}_{R}}=\underset{i=1}{\overset{n}{\mathop \sum }}\,{{({{\hat{y}}_{i}}-\bar{y})}^{2}}\,$$
+
+$$S{{S}_{T}}=\underset{i=1}{\overset{n}{\mathop \sum }}\,{{({{y}_{i}}-\bar{y})}^{2}}\,$$
+
+
+
+ - Since $R^2$ is a proportion, it is always a number between 0 and 1.
+ - If $R^2=1$, all of the data points fall perfectly on the regression line. The predictor $x$ accounts for all of the variation in $y$.
+ - If $R^2=0$, the estimated regression line is perfectly horizontal. The predictor $x$ accounts for none of the variation in $y$.
+ 
+
+<br>
+
+
+```{r  glucose-R2, out.width = "60%", exercise=FALSE, exercise.eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, comment=FALSE}
+ withMathJax(
+            paste0("\t", 
+              "\\( R^2 = \\) ", round(summary(model)$r.squared, 3), "  ;  ","\t",
+                "Adj. \\( R^2 = \\) ", round(summary(model)$adj.r.squared, 3)
+            )
+        )
+
+```
+
+
+
+## Basic Concepts
+
+
+
+
+```{r lr-definition}
+
+quiz(
+  question("Linear Regression is:",
+    answer("An equation of a straight line", correct = TRUE),
+    answer("An econometric model", correct = TRUE),
+    answer("A representation of correlation", correct = FALSE)
+  ),
+  question("Multiple Linear Regression is used to represent the relationship of two variables",
+    answer("True", correct = FALSE),
+    answer("False", correct = TRUE),
+    incorrect = "Simple Linear Regression is used when there is an independent variable. Multiple Linear Regression is used two or more explicative variables are available."),
+  question("Simple Linear Regression is a ______ type of statistical analysis:",
+    answer("univariate", correct = FALSE),
+    answer("bivariate", correct = TRUE),
+    answer("multivariate", correct = FALSE)
+  ),
+  question("The main purpose(s) of Linear Regression is/are (choose all that apply):",
+    answer("Predicting one variable on the basis of another", correct = TRUE),
+    answer("Explaining one variable in terms of another", correct = TRUE),
+    answer("Describing the relationship between one variable and another", correct = TRUE),
+    answer("Exploring the relationship between one variable and another", correct = TRUE)
+  )
+)
+```
+
+## Interpretation
+
+
+```{r lr-model-interpretation}
+quiz(
+  question("A linear regression (LR) analysis produces the equation $\\hat{y} = 3 + 0.4x$. This indicates that:",
+    answer("When y = 0.4, x = 3", correct = FALSE),
+    answer("When y = 0, x = 3 ", correct = FALSE),
+    answer("When x = 3, y = 0.4", correct = FALSE),
+    answer("When x = 0, y = 3 ", correct = TRUE)
+  ),
+  question("A Linear Regression analysis produces the equation $\\hat{y} = 7 - 3.2x$. This indicates that:",
+    answer("A 1 unit increase in X results in a 3.2 unit decrease in Y.", correct = TRUE),
+    answer("A 1 unit decrease in X results in a 3.2 unit decrease in Y.", correct = FALSE),
+    answer("A 1 unit increase in X results in a 3.2 unit increase in Y.", correct = FALSE),
+    answer("An X value of 0 would would increase Y by 7.", correct = FALSE)
+  ),
+  question("We have a regression equation where $\\hat{y} = 20 + 10x$, if $x$ is $5.3$ what is $\\hat{y}$?",
+    answer("25.3", correct = FALSE),
+    answer("33", correct = FALSE),
+    answer("53", correct = FALSE),
+    answer("73", correct = TRUE)
+    ),
+  question("We have a regression equation where $\\hat{y} = 1.2x - 3.4$, predict $y$ when $x = 5.0$",
+    answer("1.6", correct = FALSE),
+    answer("2.6", correct = TRUE),
+    answer("3.4", correct = FALSE),
+    answer("8.0", correct = FALSE)
+  ),
+  question("The equation of the regression line is $\\hat{y} = 1.2x - 3.4$. Compute the residual for the point $(x=7, y=6)$",
+    answer("-1", correct = FALSE),
+    answer("-5", correct = FALSE),
+    answer("1", correct = TRUE),
+    answer("5", correct = FALSE)
+  )
+)
+```
+
+## Parameters
+
+```{r lr-parameters}
+
+quiz(
+  question("The coefficients of the least squares regression line are determined by minimizing the sum of the squares of the ... ",
+    answer("$x$‐coordinates", correct = FALSE),
+    answer("$y$‐coordinates", correct = FALSE),
+    answer("residuals", correct = TRUE),
+    answer("None of these", correct = FALSE)
+    ),
+  question("Which of the following methods do we use to find the best fit line for data in Linear Regression?",
+    answer("Maximum Likelihood", correct = TRUE),
+    answer("Least Square Error", correct = TRUE),
+    answer("Logarithmic Loss", correct = FALSE),
+    answer("None of these", correct = FALSE)
+  ),
+  question("A paired data set has $ \\bar{x} = 10, \\bar{y} = 8$ and slope of the regression line $1.5$. The intercept of the regression line is",
+    answer("-7", correct = TRUE),
+    answer("7", correct = FALSE),
+    answer("8", correct = FALSE),
+    answer("23", correct = FALSE)
+    ),
+  question("A paired data set has $n=5, \\sum{x}=15, \\sum{y}=27, \\sum{xy}=100, \\sum{x^2}=55$. The intercept of the regression line is",
+    answer("-0.3", correct = FALSE),
+    answer("-1.9", correct = FALSE),
+    answer("1.9", correct = TRUE),
+    answer("5.4", correct = FALSE)
+  )
+)
+```
+
+
+
+
+
+
+## Diagnosis
+
+
+```{r lr-goodness-of-fit}
+
+quiz(
+  question("Which of the following is true about Residuals?",
+    answer("Lower is better", correct = TRUE),
+    answer("Higher is better", correct = FALSE),
+    answer("Depend on the situation", correct = FALSE),
+    answer("None of these", correct = FALSE)
+    ),
+  question("Which of the following statement is true about outliers in Linear   Regression?",
+    answer("Linear regression is not sensitive to outliers", correct = FALSE),
+    answer("Linear regression is sensitive to outliers", correct = TRUE),
+    answer("Depend on the situation", correct = FALSE),
+    answer("None of these", correct = FALSE)
+  ),
+  question("Which of the following evaluation metrics can be used to evaluate a model while modeling a linear regression?",
+    answer("AUC-ROC", correct = FALSE),
+    answer("LogLoss", correct = FALSE),
+    answer("Mean-Squared-Error", correct = FALSE),
+    answer("$R^2$", correct = TRUE)
+  ),
+  question("$R^2$ is call the",
+    answer("Variance", correct = FALSE),
+    answer("Covariance", correct = FALSE),
+    answer("Cross-product", correct = FALSE),
+    answer("Coefficient of determination", correct = TRUE)
+  )
+)
+```
+
